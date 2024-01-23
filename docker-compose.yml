@@ -1,0 +1,63 @@
+version: '3.9'
+
+services:
+  django:
+    build:
+      context: .
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    depends_on:
+      postgres:
+          condition: service_healthy
+    container_name: django_app_bank
+  redis:
+    image: redis:latest
+    restart: always
+    ports:
+      - ${REDIS_PORT}:${REDIS_PORT}
+    environment:
+      - ${REDIS_PORT}
+      - ${REDIS_DATABASES}
+    volumes:
+      - celery_broker_data:/data
+    container_name: 'celery_broker_bot'
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    restart: always
+    ports:
+    - ${POSTGRES_PORT}:${POSTGRES_PORT}
+    volumes:
+      - django_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 30s
+      retries: 5
+    container_name: postgres_modul_bank
+  celery:
+    build:
+      context: .
+    restart: always
+    env_file:
+      - .env
+    environment:
+      REDIS_URL: ${REDIS_URL}
+    command: celery -A ModulBankIntegration worker --loglevel=info --concurrency 1 -E
+    depends_on:
+      django:
+        condition: service_started
+      redis:
+        condition: service_started
+    container_name: celery
+
+
+
+volumes:
+  django_postgres_data:
+  celery_broker_data:

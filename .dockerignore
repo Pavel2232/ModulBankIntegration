@@ -1,0 +1,11 @@
+# ignore all
+
+**
+
+# except
+!manage.py
+!ModulBankIntegration/**
+!modul_bank/**
+!entrypoint.sh
+!poetry.lock
+!pyproject.toml
