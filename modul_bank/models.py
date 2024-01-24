@@ -1,43 +1,26 @@
 from django.db import models
 
-# Create your models here.
-"""Никита, [15 янв. 2024 г., 20:22:27]:
-...Написать простое приложение в DRF + sqlite
-Нужно выгружать данные операций по API Альфы. 
-Требования:
-1) Структура бд должна включать такую цепочку связей: Банк-Компания-Аккаунт(счет)- Операции
-2) Нужна регулярная выгрузка каждый день в 4 утра по мск.
-3) Проверка на дублирование операций
-4) Ежедневная выгрузка в 4:00 по мскбаланса на каждом аккаунте (счету) с сохранением истории изменений (то есть сохраняем дату и время)
-5) Написать методы CRUD для банка 
-6) Для выгрузки по расписанию использовать Celery
-7) При создании нового банка должна запускаться фоновая задача для первичной выгрузки операций из банка за последний год (с 01.01.2023)
-
-Если будут вопросы, задавай"""
 
 class BaseData(models.Model):
-
     class Meta:
         abstract = True
 
-    created = models.DateTimeField(
+    created_at = models.DateTimeField(
         verbose_name="Дата создания",
         auto_now_add=True
     )
 
-    update = models.DateTimeField(
+    update_at = models.DateTimeField(
         verbose_name="Дата последнего обновления",
         auto_now=True
     )
 
 
 class Bank(models.Model):
-
     title = models.CharField(
         max_length=255,
-        verbose_name='Название банка'
+        verbose_name='Название банка',
     )
-
 
     class Meta:
         verbose_name = 'Банк'
@@ -48,7 +31,6 @@ class Bank(models.Model):
 
 
 class Company(models.Model):
-
     bank = models.ForeignKey(
         Bank,
         on_delete=models.CASCADE,
@@ -58,12 +40,13 @@ class Company(models.Model):
 
     company_id = models.CharField(
         max_length=1000,
-        verbose_name='Уникальный id компании'
+        verbose_name='Уникальный id компании',
+        unique=True
     )
 
     company_name = models.CharField(
         max_length=1000,
-        verbose_name='Название компании'
+        verbose_name='Название компании',
     )
 
     status = models.BooleanField(
@@ -77,8 +60,8 @@ class Company(models.Model):
     def __str__(self):
         return self.company_name
 
-class Account(BaseData):
 
+class Account(BaseData):
     account_name = models.CharField(
         max_length=500,
         verbose_name='Название счёта'
@@ -120,7 +103,8 @@ class Account(BaseData):
 
     id_account = models.CharField(
         max_length=1000,
-        verbose_name='Уникальный id cчёта'
+        verbose_name='Уникальный id cчёта',
+        unique=True
     )
 
     number = models.CharField(
@@ -143,11 +127,10 @@ class Account(BaseData):
         verbose_name_plural = 'Счета'
 
     def __str__(self):
-        return self.account_name
+        return f'{self.account_name}-{self.begin_date}'
 
 
-class Operation(models.Model):
-
+class Operation(BaseData):
     id_payment = models.CharField(
         max_length=1000,
         verbose_name='Системный идентификатор транзакции',
@@ -168,7 +151,6 @@ class Operation(models.Model):
 
     status = models.CharField(
         max_length=1000,
-        blank=True,
         verbose_name='Текущий статус транзакции'
     )
 
@@ -202,6 +184,12 @@ class Operation(models.Model):
         verbose_name='Счёт контрагента'
     )
 
+    contragent_bank_corr_account = models.CharField(
+        max_length=1000,
+        blank=True,
+        verbose_name='Коррсчёт контрагента'
+    )
+
     contragent_bank_name = models.CharField(
         max_length=1000,
         blank=True,
@@ -223,7 +211,6 @@ class Operation(models.Model):
     amount = models.DecimalField(
         max_digits=19,
         decimal_places=2,
-        blank=True,
         verbose_name='Сумма платежа без учета банковской комиссии'
     )
 
@@ -247,7 +234,6 @@ class Operation(models.Model):
 
     created = models.CharField(
         max_length=1000,
-        blank=True,
         verbose_name='Дата создания транзакции'
     )
 
@@ -342,10 +328,9 @@ class Operation(models.Model):
         related_name='accounts'
     )
 
-
     class Meta:
         verbose_name = 'Операция'
         verbose_name_plural = 'Операции'
 
     def __str__(self):
-        return self.id_payment
+        return f'{self.id_payment} -- {self.created} -- {self.account.id}'

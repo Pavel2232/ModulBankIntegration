@@ -48,7 +48,7 @@ services:
       - .env
     environment:
       REDIS_URL: ${REDIS_URL}
-    command: celery -A ModulBankIntegration worker --loglevel=info --concurrency 1 -E
+    command:  celery -A ModulBankIntegration  worker --beat --scheduler django --loglevel=info
     depends_on:
       django:
         condition: service_started
