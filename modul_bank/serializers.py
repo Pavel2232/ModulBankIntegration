@@ -48,7 +48,7 @@ class BankSerializers(serializers.ModelSerializer):
 
         PeriodicTask.objects.create(
             crontab=schedule_first_upload,
-            name='First upload data',
+            name=f'{bank.id}-{bank.title}: Regular upload data',
             task='modul_bank.tasks.regular_unloading_operations',
             kwargs=json.dumps(
                 {'bank_id': bank.id},
